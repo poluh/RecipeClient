@@ -28,7 +28,7 @@ public class JSON {
             allPointsArray.put(JSONPoint);
         }
         mainJSON.put("allPoints", allPointsArray);
-
+        System.out.println(points.size());
         return mainJSON;
     }
 
