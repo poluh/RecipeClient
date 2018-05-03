@@ -1,5 +1,7 @@
 package com.client;
+
 import android.annotation.SuppressLint;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -7,17 +9,22 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
+import android.os.Build;
+import android.os.Environment;
+import android.support.annotation.RequiresApi;
 import android.view.MotionEvent;
 import android.view.View;
 
-//import com.recipeclient.server.work.JSON;
+import com.client.image.BitMapPreprocessor;
+import com.client.server.connection.ServerForwarder;
 
-import com.client.server.JSON;
-
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @SuppressLint("ViewConstructor")
 class DrawingView extends View {
@@ -35,13 +42,14 @@ class DrawingView extends View {
 
     public DrawingView(Context context, Paint mPaint) {
         super(context);
+        this.setDrawingCacheEnabled(true);
         this.mPaint = mPaint;
         mPath = new Path();
         mBitmapPaint = new Paint(Paint.DITHER_FLAG);
         circlePaint = new Paint();
         circlePath = new Path();
         circlePaint.setAntiAlias(true);
-        circlePaint.setColor(Color.BLUE);
+        circlePaint.setColor(Color.BLACK);
         circlePaint.setStyle(Paint.Style.STROKE);
         circlePaint.setStrokeJoin(Paint.Join.MITER);
         circlePaint.setStrokeWidth(4f);
@@ -52,14 +60,14 @@ class DrawingView extends View {
         super.onSizeChanged(width, height, oldWidth, oldHeight);
         this.height = height;
         this.width = width;
-        mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         mCanvas = new Canvas(mBitmap);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
+        mPaint.setColor(Color.BLACK);
         canvas.drawBitmap(mBitmap, 0, 0, mBitmapPaint);
         canvas.drawPath(mPath, mPaint);
         canvas.drawPath(circlePath, circlePaint);
@@ -95,6 +103,7 @@ class DrawingView extends View {
         mPath.reset();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.N)
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -107,12 +116,30 @@ class DrawingView extends View {
                 break;
             case MotionEvent.ACTION_MOVE:
                 touchMove(x, y);
-                points.add(new Point((int) x, (int) y));
+                points.add(new Point((int) mX, (int) mY));
+                for (int i = (int) x - 4; i <= x; i++) {
+                    for (int j = (int) y - 4; j <= y; j++) {
+                        points.add(new Point(i, j));
+                    }
+                }
                 invalidate();
                 break;
             case MotionEvent.ACTION_UP:
-                JSON json = new JSON(points);
-                System.out.println(json.getJSONString());
+                try {
+                    File image = new File(getContext().getFilesDir() + "image.png");
+
+                    FileOutputStream imageFOS = new FileOutputStream(image);
+                    Bitmap uploadImage =
+                            new BitMapPreprocessor(getDrawingCache()).getImageProcessing();
+                    uploadImage.compress(Bitmap.CompressFormat.PNG, 0, imageFOS);
+
+                    ServerForwarder serverForwarder = new ServerForwarder(
+                            new File(getContext().getFilesDir() + "image.png"));
+                    serverForwarder.connect();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 touchUp();
                 invalidate();
                 break;
