@@ -1,7 +1,6 @@
 package com.client;
 
 import android.annotation.SuppressLint;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -10,26 +9,18 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.os.Build;
-import android.os.Environment;
 import android.support.annotation.RequiresApi;
 import android.view.MotionEvent;
 import android.view.View;
-
 import com.client.image.BitMapPreprocessor;
 import com.client.server.connection.ServerForwarder;
-
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @SuppressLint("ViewConstructor")
 class DrawingView extends View {
 
-    private List<Point> points = new ArrayList<>();
     public int width;
     public int height;
     private Bitmap mBitmap;
@@ -116,42 +107,45 @@ class DrawingView extends View {
                 break;
             case MotionEvent.ACTION_MOVE:
                 touchMove(x, y);
-                points.add(new Point((int) mX, (int) mY));
-                for (int i = (int) x - 4; i <= x; i++) {
-                    for (int j = (int) y - 4; j <= y; j++) {
-                        points.add(new Point(i, j));
-                    }
-                }
                 invalidate();
                 break;
             case MotionEvent.ACTION_UP:
                 try {
-                    File image = new File(getContext().getFilesDir() + "image.png");
-
-                    FileOutputStream imageFOS = new FileOutputStream(image);
-                    Bitmap uploadImage =
-                            new BitMapPreprocessor(getDrawingCache()).getImageProcessing();
-                    uploadImage.compress(Bitmap.CompressFormat.PNG, 0, imageFOS);
-
-                    ServerForwarder serverForwarder = new ServerForwarder(
-                            new File(getContext().getFilesDir() + "image.png"));
-                    serverForwarder.connect();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    Bitmap uploadImage = imageProcessing();
+                    String processingResult = processingResult();
+                    new Shower(getContext()).show(processingResult, uploadImage);
+                } catch (FileNotFoundException ex) {
+                    System.err.println("File not found, " + ex.getMessage());
                 }
-
                 touchUp();
+                touchOut(x, y);
                 invalidate();
                 break;
         }
         return true;
     }
 
+    private String processingResult() throws FileNotFoundException {
+        ServerForwarder serverForwarder = new ServerForwarder(
+                new File(getContext().getFilesDir() + "image.png"));
+        serverForwarder.connect();
+        return serverForwarder.getMostLikelyResult();
+    }
+
+    private Bitmap imageProcessing() throws FileNotFoundException {
+        File image = new File(getContext().getFilesDir() + "image.png");
+        FileOutputStream imageFOS = new FileOutputStream(image);
+        Bitmap uploadImage =
+                new BitMapPreprocessor(getDrawingCache(), width, height)
+                        .getImageProcessing();
+        uploadImage.compress(Bitmap.CompressFormat.PNG, 0, imageFOS);
+        return uploadImage;
+    }
+
     private void touchOut(float x, float y) {
         Paint paint = new Paint();
         paint.setColor(Color.WHITE);
         mCanvas.drawPaint(paint);
-        points.clear();
         touchStart(x, y);
         invalidate();
     }

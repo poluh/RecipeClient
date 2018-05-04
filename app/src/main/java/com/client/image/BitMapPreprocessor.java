@@ -7,8 +7,8 @@ public class BitMapPreprocessor {
     private Bitmap image;
     private int[][] allImagePixels;
 
-    public BitMapPreprocessor(Bitmap bitmap) {
-        this.image = bitmap;
+    public BitMapPreprocessor(Bitmap bitmap, int width, int height) {
+        this.image = Bitmap.createScaledBitmap(bitmap, width / 10, height / 10, false);
     }
 
     public Bitmap getImageProcessing() {
@@ -91,4 +91,7 @@ public class BitMapPreprocessor {
         this.allImagePixels = allPixels;
     }
 
+    public Bitmap getImage() {
+        return image;
+    }
 }
