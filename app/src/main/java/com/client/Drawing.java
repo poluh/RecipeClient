@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.view.MotionEvent;
@@ -52,9 +53,6 @@ class DrawingView extends View {
         this.width = width;
         mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         mCanvas = new Canvas(mBitmap);
-        Paint fill = new Paint();
-        fill.setColor(Color.WHITE);
-        mCanvas.drawPaint(fill);
     }
 
     @Override
@@ -96,14 +94,6 @@ class DrawingView extends View {
         mPath.reset();
     }
 
-    private void touchDown(float x, float y) {
-        Paint paint = new Paint();
-        paint.setColor(Color.WHITE);
-        mCanvas.drawPaint(paint);
-        touchStart(x, y);
-        invalidate();
-    }
-
     @RequiresApi(api = Build.VERSION_CODES.N)
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -113,7 +103,7 @@ class DrawingView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
-                touchDown(x, y);
+                touchOut(x, y);
                 break;
             case MotionEvent.ACTION_MOVE:
                 touchMove(x, y);
@@ -128,7 +118,7 @@ class DrawingView extends View {
                     System.err.println("File not found, " + ex.getMessage());
                 }
                 touchUp();
-                touchDown(x, y);
+                touchOut(x, y);
                 invalidate();
                 break;
         }
@@ -150,5 +140,13 @@ class DrawingView extends View {
                         .getImageProcessing();
         uploadImage.compress(Bitmap.CompressFormat.PNG, 0, imageFOS);
         return uploadImage;
+    }
+
+    private void touchOut(float x, float y) {
+        Paint paint = new Paint();
+        paint.setColor(Color.WHITE);
+        mCanvas.drawPaint(paint);
+        touchStart(x, y);
+        invalidate();
     }
 }
