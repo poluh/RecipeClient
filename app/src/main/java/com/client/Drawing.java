@@ -52,7 +52,10 @@ class DrawingView extends View {
         this.height = height;
         this.width = width;
         mBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+        Paint fill = new Paint();
         mCanvas = new Canvas(mBitmap);
+        fill.setColor(Color.WHITE);
+        mCanvas.drawPaint(fill);
     }
 
     @Override
